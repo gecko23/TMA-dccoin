@@ -1,15 +1,735 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/TMA-dccoin/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ton Sample TWA</title>
-    <script type="module" crossorigin src="/TMA-dccoin/assets/index-b1ff94ac.js"></script>
-    <link rel="stylesheet" href="/TMA-dccoin/assets/index-b41033e1.css">
-  </head>
-  <body>
-    <div id="root"></div>
-    
-  </body>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DCoin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* Custom font for a better look */
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Futuristic space background */
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); /* Dark blue to purple gradient */
+            color: var(--tg-theme-text-color, #e0e0e0); /* Default light text for dark background */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        /* Style for dark purple content boxes with light text */
+        .bg-dark-purple {
+            background-color: #302b63; /* Dark purple for content boxes */
+            color: #e0e0e0; /* Light text for dark background */
+        }
+        /* Ensure specific text elements within cards remain readable */
+        .bg-dark-purple .text-gray-800 {
+            color: #e0e0e0; /* Lighter color for headings */
+        }
+        .bg-dark-purple .text-gray-600 {
+            color: #b0b0b0; /* Lighter color for general text */
+        }
+        .bg-dark-purple .text-indigo-700 {
+            color: #93c5fd; /* Lighter blue for points display */
+        }
+        .bg-dark-purple .text-green-600 {
+            color: #86efac; /* Lighter green for click value display */
+        }
+
+        .bg-telegram-button {
+            background-color: var(--tg-theme-button-color, #007bff); /* Default blue */
+        }
+        .hover\\:bg-telegram-button-hover:hover {
+            background-color: var(--tg-theme-button-color, #007bff); /* Use the same for hover for simplicity */
+            filter: brightness(90%); /* Slightly darker on hover */
+        }
+        .text-telegram-button-text {
+            color: var(--tg-theme-button-text-color, #ffffff); /* Default white */
+        }
+        .border-telegram-hint {
+            border-color: var(--tg-theme-hint-color, #8e8e93);
+        }
+        /* Custom styling for the clickable coin container */
+        #clickButton {
+            user-select: none; /* Prevent text selection on image */
+            -webkit-user-drag: none; /* Prevent image dragging */
+        }
+        /* Styling for the bottom navigation bar */
+        .bottom-nav-bar {
+            background-color: var(--tg-theme-secondary-bg-color, #ffffff); /* Use Telegram's secondary background color */
+            border-top: 1px solid var(--tg-theme-hint-color, #e0e0e0);
+        }
+        .nav-icon-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 4px;
+            cursor: pointer;
+            color: var(--tg-theme-hint-color, #8e8e93); /* Default icon color */
+            transition: color 0.2s ease-in-out;
+        }
+        .nav-icon-item.active {
+            color: var(--tg-theme-link-color, #007bff); /* Active icon color */
+        }
+        .nav-icon-item:hover {
+            color: var(--tg-theme-link-color, #007bff); /* Hover color */
+        }
+        .nav-icon-item svg {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 4px;
+        }
+        .nav-icon-item span {
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 500; /* font-medium */
+        }
+
+        /* Energy bar styling */
+        .energy-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 9999px; /* Full rounded */
+            height: 12px;
+            overflow: hidden;
+            margin-top: 1rem;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .energy-bar-fill {
+            height: 100%;
+            background-color: #4CAF50; /* Green color */
+            width: 0%; /* Controlled by JS */
+            transition: width 0.2s ease-out;
+            border-radius: 9999px;
+        }
+        .energy-bar-fill.low-energy {
+            background-color: #FFC107; /* Orange for low energy */
+        }
+        .energy-bar-fill.critical-energy {
+            background-color: #F44336; /* Red for critical energy */
+        }
+
+        /* Wheel of Fortune specific styles */
+        #wheelCanvas {
+            border: 4px solid #4a0e7a; /* Dark purple border */
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(74, 14, 122, 0.8), inset 0 0 10px rgba(74, 14, 122, 0.5);
+            margin-bottom: 1.5rem;
+            display: block; /* To remove extra space below canvas */
+            background-color: #24243e; /* Inner background for wheel */
+        }
+        #spinNowButton {
+            background-color: #ffc107; /* Yellowish color for spin button */
+            color: #302b63; /* Dark text for contrast */
+            font-size: 1.25rem; /* text-xl */
+            font-weight: bold;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease-in-out;
+        }
+        #spinNowButton:hover {
+            background-color: #e0a800; /* Darker yellow on hover */
+            transform: scale(1.05);
+        }
+        #spinNowButton:active {
+            transform: scale(0.95);
+        }
+        #spinResultDisplay {
+            font-size: 1.5rem; /* text-2xl */
+            font-weight: bold;
+            color: #86efac; /* Light green for positive result */
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-400 to-purple-600">
+    <main class="flex-grow flex items-center justify-center p-4 overflow-auto">
+        <div id="homeView" class="bg-dark-purple p-8 rounded-2xl shadow-2xl max-w-md w-full text-center hidden">
+            <h2 class="text-3xl font-bold mb-4">Vítejte doma!</h2>
+            <p class="text-gray-600">Toto je domovská stránka vaší aplikace.</p>
+        </div>
+
+        <div id="earnView" class="bg-dark-purple p-8 rounded-2xl shadow-2xl max-w-md w-full text-center">
+            <h1 class="text-4xl font-bold mb-6">DCoin</h1>
+
+            <div class="mb-8">
+                <p class="text-lg">Aktuální body:</p>
+                <p id="pointsDisplay" class="text-5xl font-extrabold mt-2">0</p>
+            </div>
+
+            <div class="mb-4">
+                <p class="text-lg">Body za kliknutí:</p>
+                <p id="clickValueDisplay" class="text-3xl font-semibold mt-2">1</p>
+            </div>
+
+            <div class="mb-8">
+                <p class="text-lg">Energie: <span id="currentEnergyDisplay">5000</span> / <span id="maxEnergyDisplay">5000</span></p>
+                <div class="energy-bar-container">
+                    <div id="energyBarFill" class="energy-bar-fill"></div>
+                </div>
+            </div>
+
+            <div id="clickButton"
+                 class="w-48 h-48 mx-auto block cursor-pointer rounded-full shadow-lg transition-all duration-100 transform hover:scale-105 active:scale-95 mb-8 overflow-hidden flex items-center justify-center bg-dark-purple">
+                <img src="coin1.png"
+                     alt="DCoin"
+                     class="w-full h-full object-contain"
+                     onerror="this.onerror=null;this.src='https://placehold.co/300x300/cccccc/333333?text=Mince';"
+                >
+            </div>
+        </div>
+
+        <div id="upgradeView" class="bg-dark-purple p-8 rounded-2xl shadow-2xl max-w-md w-full text-center hidden">
+            <h2 class="text-3xl font-bold mb-4">Vylepšení</h2>
+            <div class="grid grid-cols-1 gap-4">
+                <button id="upgradeClickValueButton" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-purple-300">
+                    Vylepšit kliknutí (+1 bod) - Cena: <span id="upgradeClickCostDisplay">10</span> bodů
+                </button>
+                <button id="upgradeEnergyButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-blue-300">
+                    Vylepšit max. energii (+1000) - Cena: <span id="upgradeEnergyCostDisplay">50</span> bodů
+                </button>
+                <button id="upgradeSpinMultiplierButton" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-orange-300">
+                    Vylepšit násobitel výher (x<span id="spinMultiplierDisplay">1</span>) - Cena: <span id="upgradeSpinMultiplierCostDisplay">200</span> bodů
+                </button>
+                <button id="boostButton" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-green-300 mt-4">
+                    Boost (doplní energii) - Cena: <span id="boostCostDisplay">100</span> bodů
+                </button>
+            </div>
+        </div>
+
+        <div id="playView" class="bg-dark-purple p-8 rounded-2xl shadow-2xl max-w-md w-full text-center hidden">
+            <h2 class="text-3xl font-bold mb-4">Kolo štěstí</h2>
+            <p class="text-gray-600 mb-6">Roztočte kolo a vyhrajte body!</p>
+
+            <canvas id="wheelCanvas" width="300" height="300" class="mx-auto"></canvas>
+            <button id="spinNowButton" class="mt-6 bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-xl shadow-md transition-all duration-300 transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-yellow-300">
+                Roztočit hned! - Cena: <span id="spinCostDisplay">50</span> bodů
+            </button>
+            <p id="spinResultDisplay" class="text-2xl font-bold mt-4"></p>
+        </div>
+
+        <div id="walletView" class="bg-dark-purple p-8 rounded-2xl shadow-2xl max-w-md w-full text-center hidden">
+            <h2 class="text-3xl font-bold mb-4">Vaše peněženka</h2>
+            <p class="text-gray-600">Zde byste viděli své zůstatky a možnosti transakcí.</p>
+        </div>
+    </main>
+
+    <footer class="bottom-nav-bar fixed bottom-0 left-0 w-full flex justify-around items-center h-16 shadow-lg z-50">
+        <div class="nav-icon-item active" data-view="earn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.072 60.072 0 0115.75 0M5.25 7.5A3.75 3.75 0 019 3.75h6.75a3.75 3.75 0 013.75 3.75v10.5a3.75 3.75 0 01-3.75 3.75H9a3.75 3.75 0 01-3.75-3.75V7.5zM12 12.75a.75.75 0 100-1.5.75.75 0 000 1.5z"/>
+            </svg>
+            <span>Earn</span>
+        </div>
+        <div class="nav-icon-item" data-view="upgrade">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"/>
+            </svg>
+            <span>Upgrade</span>
+        </div>
+        <div class="nav-icon-item" data-view="play">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.36 1.639-.931l8.894 4.447c.722.36.722 1.25 0 1.61l-8.894 4.447c-.722.36-1.639-.164-1.639-.93V5.653z"/>
+            </svg>
+            <span>Play</span>
+        </div>
+        <div class="nav-icon-item" data-view="wallet">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3M12 18.75h9.75M12 5.25h9.75M2.25 5.25h9.75V18.75H2.25V5.25z"/>
+            </svg>
+            <span>Wallet</span>
+        </div>
+        <div class="nav-icon-item" data-view="home">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125h9.75a1.125 1.125 0 001.125-1.125V9.75M8.25 21h8.25"/>
+            </svg>
+            <span>Home</span>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Telegram Web App
+        Telegram.WebApp.ready();
+        // Set the app's background color to match Telegram's theme
+        // We'll keep this line, but the custom CSS gradient will override the body background.
+        // This is good practice for Telegram Mini Apps to respect theme, even if overridden by specific styles.
+        Telegram.WebApp.setBackgroundColor(Telegram.WebApp.themeParams.bg_color);
+
+        // Game variables
+        let points = 0;
+        let clickValue = 1;
+        let upgradeClickCost = 10;
+
+        let currentEnergy = 5000;
+        let maxEnergy = 5000;
+        let upgradeEnergyCost = 50;
+        let energyUpgradeAmount = 1000;
+
+        let boostCost = 100;
+
+        let spinCost = 50; // Cost to spin the wheel
+        let wheelSpinning = false; // Flag to prevent multiple spins
+
+        let spinMultiplier = 1; // New: Multiplier for wheel winnings
+        let upgradeSpinMultiplierCost = 200; // New: Cost to upgrade multiplier
+        let spinMultiplierAmount = 1; // New: How much the multiplier increases (e.g., x1, x2, x3...)
+
+        // Get DOM elements
+        const pointsDisplay = document.getElementById('pointsDisplay');
+        const clickValueDisplay = document.getElementById('clickValueDisplay');
+        const upgradeClickCostDisplay = document.getElementById('upgradeClickCostDisplay');
+        const clickButton = document.getElementById('clickButton'); // Refers to the image container
+
+        const currentEnergyDisplay = document.getElementById('currentEnergyDisplay');
+        const maxEnergyDisplay = document.getElementById('maxEnergyDisplay');
+        const energyBarFill = document.getElementById('energyBarFill');
+        const upgradeEnergyCostDisplay = document.getElementById('upgradeEnergyCostDisplay');
+
+        const upgradeClickValueButton = document.getElementById('upgradeClickValueButton');
+        const upgradeEnergyButton = document.getElementById('upgradeEnergyButton');
+        const upgradeSpinMultiplierButton = document.getElementById('upgradeSpinMultiplierButton'); // New element
+        const spinMultiplierDisplay = document.getElementById('spinMultiplierDisplay'); // New element
+        const upgradeSpinMultiplierCostDisplay = document.getElementById('upgradeSpinMultiplierCostDisplay'); // New element
+        const boostButton = document.getElementById('boostButton');
+        const boostCostDisplay = document.getElementById('boostCostDisplay');
+
+        // Wheel of Fortune elements
+        const wheelCanvas = document.getElementById('wheelCanvas');
+        const wheelCtx = wheelCanvas.getContext('2d');
+        const spinNowButton = document.getElementById('spinNowButton');
+        const spinCostDisplay = document.getElementById('spinCostDisplay');
+        const spinResultDisplay = document.getElementById('spinResultDisplay');
+
+        // Wheel segments (colors and random values)
+        const wheelSegments = [
+            { color: '#FFD700', value: 0 }, // Gold (will be assigned random value)
+            { color: '#FF6347', value: 0 }, // Tomato
+            { color: '#4682B4', value: 0 }, // SteelBlue
+            { color: '#8A2BE2', value: 0 }, // BlueViolet
+            { color: '#32CD32', value: 0 }, // LimeGreen
+            { color: '#FF4500', value: 0 }, // OrangeRed
+            { color: '#1E90FF', value: 0 }, // DodgerBlue
+            { color: '#DA70D6', value: 0 }, // Orchid
+            { color: '#ADFF2F', value: 0 }, // GreenYellow
+            { color: '#FF1493', value: 0 }, // DeepPink
+            { color: '#00CED1', value: 0 }, // DarkTurquoise
+            { color: '#FF8C00', value: 0 }, // DarkOrange
+        ];
+
+        // Function to assign random values to segments (10 to 1,000,000)
+        function assignRandomWheelValues() {
+            wheelSegments.forEach(segment => {
+                segment.value = Math.floor(Math.random() * (1000000 - 10 + 1)) + 10;
+            });
+        }
+
+        // Function to format large numbers (e.g., 100K, 1M, 1B)
+        function formatNumber(num) {
+            if (num >= 1000000000) {
+                return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'B';
+            }
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+            }
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'K';
+            }
+            return num.toLocaleString(); // Use toLocaleString for smaller numbers
+        }
+
+        // Draw the wheel
+        function drawWheel() {
+            const centerX = wheelCanvas.width / 2;
+            const centerY = wheelCanvas.height / 2;
+            const radius = wheelCanvas.width / 2 - 10; // Slightly smaller to leave space for border
+
+            wheelCtx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height); // Clear canvas
+
+            const arcSize = 2 * Math.PI / wheelSegments.length;
+
+            for (let i = 0; i < wheelSegments.length; i++) {
+                const angle = i * arcSize;
+                wheelCtx.beginPath();
+                wheelCtx.arc(centerX, centerY, radius, angle, angle + arcSize);
+                wheelCtx.lineTo(centerX, centerY);
+                wheelCtx.closePath();
+                wheelCtx.fillStyle = wheelSegments[i].color;
+                wheelCtx.fill();
+                wheelCtx.strokeStyle = '#302b63'; // Dark purple border for segments
+                wheelCtx.lineWidth = 2;
+                wheelCtx.stroke();
+
+                // Draw text (value) on segment
+                wheelCtx.save();
+                wheelCtx.translate(centerX, centerY);
+                wheelCtx.rotate(angle + arcSize / 2);
+                wheelCtx.textAlign = 'right';
+                wheelCtx.fillStyle = '#ffffff'; // White text for values
+                wheelCtx.font = 'bold 14px Inter';
+                // Use formatNumber for displaying segment values
+                wheelCtx.fillText(formatNumber(wheelSegments[i].value), radius - 15, 5);
+                wheelCtx.restore();
+            }
+
+            // Draw the center circle
+            wheelCtx.beginPath();
+            wheelCtx.arc(centerX, centerY, radius * 0.2, 0, 2 * Math.PI);
+            wheelCtx.fillStyle = '#4a0e7a'; // Dark purple center
+            wheelCtx.fill();
+            wheelCtx.strokeStyle = '#e0e0e0';
+            wheelCtx.lineWidth = 2;
+            wheelCtx.stroke();
+
+            // Draw the pointer (triangle)
+            wheelCtx.beginPath();
+            wheelCtx.moveTo(centerX + 15, 0);
+            wheelCtx.lineTo(centerX - 15, 0);
+            wheelCtx.lineTo(centerX, 30);
+            wheelCtx.closePath();
+            wheelCtx.fillStyle = '#FF0000'; // Red pointer
+            wheelCtx.fill();
+            wheelCtx.strokeStyle = '#e0e0e0';
+            wheelCtx.lineWidth = 2;
+            wheelCtx.stroke();
+        }
+
+        let currentRotation = 0; // Current rotation angle of the wheel
+        let targetRotation = 0; // Target rotation angle for the spin
+        let animationFrameId;
+
+        // Function to spin the wheel
+        function spinWheel() {
+            if (wheelSpinning || points < spinCost) {
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                }
+                if (points < spinCost) {
+                    spinResultDisplay.textContent = 'Nedostatek bodů pro roztočení!';
+                    spinResultDisplay.style.color = '#F44336'; // Red color for error
+                }
+                return;
+            }
+
+            points -= spinCost; // Deduct spin cost
+            updateUI(); // Update points display immediately
+
+            wheelSpinning = true;
+            spinNowButton.disabled = true;
+            spinResultDisplay.textContent = 'Točím...';
+            spinResultDisplay.style.color = '#e0e0e0'; // Reset color
+
+            // Assign new random values for this spin
+            assignRandomWheelValues();
+
+            // Calculate target rotation (multiple full spins + random stop position)
+            const randomDegrees = Math.floor(Math.random() * 360); // Random degree within 360
+            const fullSpins = 5; // At least 5 full spins
+            targetRotation = currentRotation + (fullSpins * 360) + randomDegrees;
+
+            // Apply a easing function for a more natural spin
+            const duration = 3000; // 3 seconds spin
+            const startTime = performance.now();
+
+            function animateSpin(currentTime) {
+                const elapsedTime = currentTime - startTime;
+                if (elapsedTime < duration) {
+                    const progress = elapsedTime / duration;
+                    // Ease out cubic function for deceleration
+                    const easedProgress = 1 - Math.pow(1 - progress, 3);
+                    const rotation = currentRotation + (targetRotation - currentRotation) * easedProgress;
+
+                    wheelCanvas.style.transform = `rotate(${rotation}deg)`;
+                    animationFrameId = requestAnimationFrame(animateSpin);
+                } else {
+                    // Animation finished
+                    wheelCanvas.style.transform = `rotate(${targetRotation}deg)`;
+                    currentRotation = targetRotation % 360; // Keep current rotation within 0-360
+                    if (currentRotation < 0) currentRotation += 360; // Ensure positive angle
+
+                    wheelSpinning = false;
+                    spinNowButton.disabled = false;
+
+                    // Determine the winning segment
+                    const segmentAngle = 360 / wheelSegments.length;
+                    // Adjust currentRotation for the pointer's position (top center of the wheel)
+                    // The pointer is at 0 degrees (top). We need to find which segment is under it.
+                    // The wheel rotates clockwise.
+                    // If the wheel is at 0 degrees, the first segment (index 0) is at the top.
+                    // We need to reverse the rotation to find the segment.
+                    let normalizedRotation = (360 - (targetRotation % 360)) % 360; // Normalize to 0-360 and reverse for segment lookup
+                    if (normalizedRotation < 0) normalizedRotation += 360;
+
+                    const winningSegmentIndex = Math.floor(normalizedRotation / segmentAngle);
+                    const winningSegment = wheelSegments[winningSegmentIndex];
+
+                    const winningAmount = winningSegment.value * spinMultiplier; // Apply multiplier
+                    points += winningAmount;
+                    spinResultDisplay.textContent = `Vyhráli jste: ${formatNumber(winningAmount)} bodů!`; // Use formatNumber
+                    spinResultDisplay.style.color = '#86efac'; // Green color for win
+                    if (Telegram.WebApp.HapticFeedback) {
+                        Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                    updateUI(); // Update points and save game
+                }
+            }
+            animationFrameId = requestAnimationFrame(animateSpin);
+        }
+
+        // Get view elements and navigation items
+        const views = {
+            home: document.getElementById('homeView'),
+            earn: document.getElementById('earnView'),
+            upgrade: document.getElementById('upgradeView'),
+            play: document.getElementById('playView'),
+            wallet: document.getElementById('walletView')
+        };
+        const navItems = document.querySelectorAll('.nav-icon-item');
+
+        // Function to save game state to localStorage
+        function saveGame() {
+            const gameState = {
+                points: points,
+                clickValue: clickValue,
+                upgradeClickCost: upgradeClickCost,
+                currentEnergy: currentEnergy,
+                maxEnergy: maxEnergy,
+                upgradeEnergyCost: upgradeEnergyCost,
+                boostCost: boostCost,
+                spinCost: spinCost,
+                spinMultiplier: spinMultiplier, // Save new variable
+                upgradeSpinMultiplierCost: upgradeSpinMultiplierCost // Save new variable
+            };
+            localStorage.setItem('telegramClickerGame', JSON.stringify(gameState));
+        }
+
+        // Function to load game state from localStorage
+        function loadGame() {
+            const savedState = localStorage.getItem('telegramClickerGame');
+            if (savedState) {
+                const gameState = JSON.parse(savedState);
+                points = gameState.points;
+                clickValue = gameState.clickValue;
+                upgradeClickCost = gameState.upgradeClickCost;
+                currentEnergy = gameState.currentEnergy;
+                maxEnergy = gameState.maxEnergy;
+                upgradeEnergyCost = gameState.upgradeEnergyCost;
+                boostCost = gameState.boostCost;
+                spinCost = gameState.spinCost || 50;
+                spinMultiplier = gameState.spinMultiplier || 1; // Load new variable, default to 1
+                upgradeSpinMultiplierCost = gameState.upgradeSpinMultiplierCost || 200; // Load new variable, default to 200
+            }
+        }
+
+        // Function to update the UI
+        function updateUI() {
+            pointsDisplay.textContent = formatNumber(points); // Use formatNumber for points
+            clickValueDisplay.textContent = clickValue;
+            upgradeClickCostDisplay.textContent = upgradeClickCost;
+
+            currentEnergyDisplay.textContent = currentEnergy;
+            maxEnergyDisplay.textContent = maxEnergy;
+            upgradeEnergyCostDisplay.textContent = upgradeEnergyCost;
+            boostCostDisplay.textContent = boostCost;
+            spinCostDisplay.textContent = spinCost;
+
+            spinMultiplierDisplay.textContent = spinMultiplier; // Update multiplier display
+            upgradeSpinMultiplierCostDisplay.textContent = upgradeSpinMultiplierCost; // Update multiplier upgrade cost display
+
+            // Update energy bar
+            const energyPercentage = (currentEnergy / maxEnergy) * 100;
+            energyBarFill.style.width = `${energyPercentage}%`;
+
+            // Change energy bar color based on percentage
+            energyBarFill.classList.remove('low-energy', 'critical-energy');
+            if (energyPercentage < 25) {
+                energyBarFill.classList.add('critical-energy');
+            } else if (energyPercentage < 50) {
+                energyBarFill.classList.add('low-energy');
+            }
+
+            // Disable/enable upgrade buttons
+            if (points < upgradeClickCost) {
+                upgradeClickValueButton.classList.add('opacity-50', 'cursor-not-allowed');
+                upgradeClickValueButton.disabled = true;
+            } else {
+                upgradeClickValueButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                upgradeClickValueButton.disabled = false;
+            }
+
+            if (points < upgradeEnergyCost) {
+                upgradeEnergyButton.classList.add('opacity-50', 'cursor-not-allowed');
+                upgradeEnergyButton.disabled = true;
+            } else {
+                upgradeEnergyButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                upgradeEnergyButton.disabled = false;
+            }
+
+            if (points < upgradeSpinMultiplierCost) { // Check for multiplier upgrade button
+                upgradeSpinMultiplierButton.classList.add('opacity-50', 'cursor-not-allowed');
+                upgradeSpinMultiplierButton.disabled = true;
+            } else {
+                upgradeSpinMultiplierButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                upgradeSpinMultiplierButton.disabled = false;
+            }
+
+            if (points < boostCost) {
+                boostButton.classList.add('opacity-50', 'cursor-not-allowed');
+                boostButton.disabled = true;
+            } else {
+                boostButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                boostButton.disabled = false;
+            }
+
+            // Disable spin button if not enough points or already spinning
+            if (points < spinCost || wheelSpinning) {
+                spinNowButton.classList.add('opacity-50', 'cursor-not-allowed');
+                spinNowButton.disabled = true;
+            } else {
+                spinNowButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                spinNowButton.disabled = false;
+            }
+
+            saveGame(); // Save game state after every UI update
+        }
+
+        // Function to show a specific view
+        function showView(viewName) {
+            for (const key in views) {
+                if (views.hasOwnProperty(key)) {
+                    if (key === viewName) {
+                        views[key].classList.remove('hidden');
+                    } else {
+                        views[key].classList.add('hidden');
+                    }
+                }
+            }
+
+            // Update active state in navigation bar
+            navItems.forEach(item => {
+                if (item.dataset.view === viewName) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        // Event listener for the click button (coin image container)
+        clickButton.addEventListener('click', () => {
+            if (currentEnergy > 0) {
+                points += clickValue;
+                currentEnergy--;
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                }
+                updateUI();
+            } else {
+                // No energy left
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                }
+                // Display a message to the user (instead of just console.log)
+                spinResultDisplay.textContent = 'Nedostatek energie pro klikání!';
+                spinResultDisplay.style.color = '#F44336'; // Red color for error
+            }
+        });
+
+        // Event listener for the upgrade click value button
+        upgradeClickValueButton.addEventListener('click', () => {
+            if (points >= upgradeClickCost) {
+                points -= upgradeClickCost;
+                clickValue += 1; // Increase click value by 1
+                upgradeClickCost = Math.floor(upgradeClickCost * 1.5); // Increase upgrade cost
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                }
+                updateUI();
+            } else {
+                console.log('Nedostatek bodů pro vylepšení kliknutí!');
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                }
+            }
+        });
+
+        // Event listener for the upgrade energy button
+        upgradeEnergyButton.addEventListener('click', () => {
+            if (points >= upgradeEnergyCost) {
+                points -= upgradeEnergyCost;
+                maxEnergy += energyUpgradeAmount; // Increase max energy
+                currentEnergy += energyUpgradeAmount; // Also refill current energy by the same amount
+                upgradeEnergyCost = Math.floor(upgradeEnergyCost * 1.8); // Increase upgrade cost (slightly faster growth)
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                }
+                updateUI();
+            } else {
+                console.log('Nedostatek bodů pro vylepšení energie!');
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                }
+            }
+        });
+
+        // New: Event listener for the upgrade spin multiplier button
+        upgradeSpinMultiplierButton.addEventListener('click', () => {
+            if (points >= upgradeSpinMultiplierCost) {
+                points -= upgradeSpinMultiplierCost;
+                spinMultiplier += spinMultiplierAmount; // Increase multiplier
+                upgradeSpinMultiplierCost = Math.floor(upgradeSpinMultiplierCost * 2.5); // Increase cost significantly
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                }
+                updateUI();
+            } else {
+                console.log('Nedostatek bodů pro vylepšení násobitele výher!');
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                }
+            }
+        });
+
+        // Event listener for the boost button
+        boostButton.addEventListener('click', () => {
+            if (points >= boostCost) {
+                points -= boostCost;
+                currentEnergy = maxEnergy; // Refill energy to max
+                boostCost = Math.floor(boostCost * 2); // Increase boost cost
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+                updateUI();
+            } else {
+                console.log('Nedostatek bodů pro boost!');
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                }
+            }
+        });
+
+        // Event listener for the Spin Now button
+        spinNowButton.addEventListener('click', spinWheel);
+
+        // Event listeners for navigation items
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const viewName = item.dataset.view;
+                showView(viewName);
+                if (Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.selectionChanged(); // Provide feedback on tab change
+                }
+            });
+        });
+
+        // Initial setup when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadGame(); // Load game state
+            assignRandomWheelValues(); // Assign initial random values to wheel segments
+            drawWheel(); // Draw the wheel initially
+            updateUI(); // Update UI with loaded state
+            showView('earn'); // Show the "Earn" view by default
+        });
+    </script>
+</body>
 </html>
